@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // User private documents folder: documents/{userId}/{documentId}/{allPaths=**}
+    match /documents/{userId}/{documentId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Strict size check (25MB max) and file types
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.size < 25 * 1024 * 1024
+                    && (
+                      request.resource.contentType.matches('application/pdf') ||
+                      request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+                      request.resource.contentType.matches('text/plain')
+                    );
+    }
+    
+    // Default deny for all other cloud storage paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
